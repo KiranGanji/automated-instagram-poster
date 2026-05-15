@@ -1,0 +1,38 @@
+name: Post - Drifted Lines
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: post-drifted-lines
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - run: pip install -r requirements.txt
+
+      - name: Run posting script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRIFTED_LINES_IG_ACCESS_TOKEN: ${{ secrets.DRIFTED_LINES_IG_ACCESS_TOKEN }}
+          DRIFTED_LINES_IG_USER_ID: ${{ secrets.DRIFTED_LINES_IG_USER_ID }}
+          DRIFTED_LINES_IG_APP_ID: ${{ secrets.DRIFTED_LINES_IG_APP_ID }}
+          DRIFTED_LINES_IG_APP_SECRET: ${{ secrets.DRIFTED_LINES_IG_APP_SECRET }}
+        run: python src/post.py --channel drifted-lines

@@ -1,0 +1,11 @@
+channel_id: drifted-lines
+display_name: "Drifted Lines"
+secret_prefix: DRIFTED_LINES
+
+content:
+  media_types: [image]
+  default_caption_key: default
+
+posting:
+  enabled: true
+  min_queue_warning: 14
