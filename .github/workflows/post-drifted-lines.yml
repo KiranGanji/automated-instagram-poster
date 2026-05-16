@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.TOKEN || github.token }}
 
       - uses: actions/setup-python@v5
         with:
@@ -30,7 +30,7 @@ jobs:
 
       - name: Run posting script
         env:
-          TOKEN: ${{ github.token }}
+          TOKEN: ${{ secrets.TOKEN || github.token }}
           DRIFTED_LINES_IG_ACCESS_TOKEN: ${{ secrets.DRIFTED_LINES_IG_ACCESS_TOKEN }}
           DRIFTED_LINES_IG_USER_ID: ${{ secrets.DRIFTED_LINES_IG_USER_ID }}
           DRIFTED_LINES_IG_APP_ID: ${{ secrets.DRIFTED_LINES_IG_APP_ID }}

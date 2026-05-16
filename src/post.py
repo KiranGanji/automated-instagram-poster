@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 
 try:
@@ -94,6 +95,9 @@ def main() -> int:
         container_id = client.create_image_container(image_url=image_url, caption=caption)
         logger.info("Container created: %s", container_id)
 
+        status = client.poll_container_status(container_id, max_wait_seconds=120, poll_interval=5)
+        logger.info("Container status ready for publish: %s", status)
+
         ig_media_id = client.publish_container(container_id)
         logger.info("Published: ig_media_id=%s", ig_media_id)
 
@@ -125,12 +129,15 @@ def main() -> int:
         return 0
 
     except ConfigError as exc:
+        emit_github_actions_error(str(exc))
         logger.error(str(exc))
         return 1
     except (GitHubAPIError, InstagramAPIError) as exc:
+        emit_github_actions_error(str(exc))
         logger.error(str(exc))
         return 2
     except Exception:
+        emit_github_actions_error("Unexpected error during posting.")
         logger.exception("Unexpected error during posting.")
         return 3
 
@@ -161,6 +168,17 @@ def resolve_token() -> str:
     if token:
         return token
     return require_env("GITHUB_TOKEN")
+
+
+def emit_github_actions_error(message: str) -> None:
+    if os.getenv("GITHUB_ACTIONS") != "true":
+        return
+    escaped = (
+        message.replace("%", "%25")
+        .replace("\r", "%0D")
+        .replace("\n", "%0A")
+    )
+    print(f"::error::{escaped}", file=sys.stderr)
 
 
 if __name__ == "__main__":

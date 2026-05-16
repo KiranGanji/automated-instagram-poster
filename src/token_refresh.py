@@ -4,6 +4,7 @@ import argparse
 import base64
 import logging
 import os
+import sys
 from typing import Any
 
 import requests
@@ -63,12 +64,15 @@ def main() -> int:
         return 0
 
     except ConfigError as exc:
+        emit_github_actions_error(str(exc))
         logger.error(str(exc))
         return 1
     except (GitHubAPIError, InstagramAPIError) as exc:
+        emit_github_actions_error(str(exc))
         logger.error(str(exc))
         return 2
     except Exception:
+        emit_github_actions_error("Unexpected error during token refresh.")
         logger.exception("Unexpected error during token refresh.")
         return 3
 
@@ -171,6 +175,17 @@ def require_env(name: str) -> str:
             "GitHub Actions provides GITHUB_REPOSITORY automatically."
         )
     return value
+
+
+def emit_github_actions_error(message: str) -> None:
+    if os.getenv("GITHUB_ACTIONS") != "true":
+        return
+    escaped = (
+        message.replace("%", "%25")
+        .replace("\r", "%0D")
+        .replace("\n", "%0A")
+    )
+    print(f"::error::{escaped}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -70,3 +70,5 @@ Dry runs resolve config, queue state, captions, and secret loading without publi
 | 190 | Token expired or invalid | Refresh the long-lived token and update the channel secret. |
 | 10 | Missing permission | Re-check the app scopes, account linkage, and publish permissions. |
 | 4 | Rate limit hit | Wait for the retry window, reduce retries, and re-run later. |
+
+For workflow pushes back into the repo, prefer setting Actions workflow permissions to `Read and write`. If your repo or branch protection blocks the built-in workflow token, add a repo secret named `TOKEN` containing a fine-grained PAT with repository `Contents: Read and write`, and the posting workflow will use it automatically.
