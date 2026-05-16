@@ -2,7 +2,8 @@ name: Post - Drifted Lines
 
 on:
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '30 3 * * *'
+    - cron: '30 15 * * *'
   workflow_dispatch:
 
 permissions:

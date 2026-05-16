@@ -76,6 +76,9 @@ def git_move_and_commit(channel_id: str, filename: str, ig_media_id: str) -> Non
     git_user_name = os.getenv("GIT_USER_NAME", "github-actions[bot]")
 
     try:
+        if not (PROJECT_ROOT / queue_path).exists():
+            raise GitHubAPIError(f"Queue file is missing and cannot be moved: {queue_path}")
+        (PROJECT_ROOT / posted_path.parent).mkdir(parents=True, exist_ok=True)
         _run_git_command(["git", "config", "user.email", git_user_email])
         _run_git_command(["git", "config", "user.name", git_user_name])
         _run_git_command(["git", "mv", str(queue_path), str(posted_path)])

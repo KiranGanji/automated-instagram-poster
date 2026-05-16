@@ -383,7 +383,8 @@ name: Post — Drifted Lines
 
 on:
   schedule:
-    - cron: '0 13 * * *'   # 13:00 UTC = 18:30 IST
+    - cron: '30 3 * * *'   # 03:30 UTC = 09:00 IST
+    - cron: '30 15 * * *'  # 15:30 UTC = 21:00 IST
   workflow_dispatch:        # allow manual runs
 
 permissions:
