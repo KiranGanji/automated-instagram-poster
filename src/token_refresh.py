@@ -42,7 +42,11 @@ def main() -> int:
         config = load_channel_config(args.channel)
         secrets = load_secrets(config.secret_prefix)
         repository = require_env("GITHUB_REPOSITORY")
-        github_token = os.getenv("SECRETS_WRITE_PAT", "").strip() or require_env("GITHUB_TOKEN")
+        github_token = (
+            os.getenv("SECRETS_WRITE_PAT", "").strip()
+            or os.getenv("TOKEN", "").strip()
+            or require_env("GITHUB_TOKEN")
+        )
 
         response = refresh_access_token(secrets.ig_access_token)
         new_token = response.get("access_token")
@@ -105,7 +109,7 @@ def update_repo_secret(
     if response.status_code not in {201, 204}:
         message = f"GitHub API error {response.status_code}: {response.text}"
         if response.status_code in {401, 403}:
-            message = f"{message}. Check SECRETS_WRITE_PAT or GITHUB_TOKEN permissions."
+            message = f"{message}. Check SECRETS_WRITE_PAT, TOKEN, or GITHUB_TOKEN permissions."
         raise GitHubAPIError(message)
 
 
@@ -146,7 +150,7 @@ def parse_github_json(response: requests.Response) -> dict[str, Any]:
     if response.status_code < 200 or response.status_code >= 300:
         message = f"GitHub API error {response.status_code}: {response.text}"
         if response.status_code in {401, 403}:
-            message = f"{message}. Check SECRETS_WRITE_PAT or GITHUB_TOKEN permissions."
+            message = f"{message}. Check SECRETS_WRITE_PAT, TOKEN, or GITHUB_TOKEN permissions."
         raise GitHubAPIError(message)
 
     try:

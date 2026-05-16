@@ -81,7 +81,7 @@ def main() -> int:
             logger.info("Dry run enabled. Would publish %s with the resolved caption.", filename)
             return 0
 
-        github_token = require_env("GITHUB_TOKEN")
+        github_token = resolve_token()
         repo = require_env("GITHUB_REPOSITORY")
         media_path = f"channels/{config.channel_id}/queue/{filename}"
         image_url = get_signed_download_url(repo, media_path, github_token)
@@ -154,6 +154,13 @@ def require_env(name: str) -> str:
             "GitHub Actions provides this automatically; set it manually for local live runs."
         )
     return value
+
+
+def resolve_token() -> str:
+    token = os.getenv("TOKEN", "").strip()
+    if token:
+        return token
+    return require_env("GITHUB_TOKEN")
 
 
 if __name__ == "__main__":

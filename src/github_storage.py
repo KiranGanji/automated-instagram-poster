@@ -21,7 +21,7 @@ GITHUB_API_BASE_URL = "https://api.github.com"
 
 def get_signed_download_url(repo: str, path: str, github_token: str) -> str:
     if not github_token.strip():
-        raise GitHubAPIError("Missing GITHUB_TOKEN for GitHub Contents API requests.")
+        raise GitHubAPIError("Missing TOKEN or GITHUB_TOKEN for GitHub Contents API requests.")
 
     try:
         response = requests.get(
@@ -116,7 +116,7 @@ def _parse_github_json(response: requests.Response) -> dict[str, Any]:
     if response.status_code < 200 or response.status_code >= 300:
         message = f"GitHub API error {response.status_code}: {response.text}"
         if response.status_code in {401, 403}:
-            message = f"{message}. Check GITHUB_TOKEN permissions."
+            message = f"{message}. Check TOKEN or GITHUB_TOKEN permissions."
         raise GitHubAPIError(message)
 
     try:
