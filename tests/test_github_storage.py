@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from src import github_storage
+from src.exceptions import GitHubAPIError
 
 
 def test_git_move_and_commit_creates_posted_dir_before_git_mv(tmp_path, monkeypatch):
@@ -45,3 +48,16 @@ def test_git_move_and_commit_accepts_directory_moves(tmp_path, monkeypatch):
 
     assert ["git", "mv", "channels/demo/queue/004", "channels/demo/posted/004"] in commands
     assert ["git", "commit", "-m", "post: demo carousel 004 -> ig-456"] in commands
+
+
+def test_validate_posted_log_rejects_empty_file(tmp_path, monkeypatch):
+    posted_log = tmp_path / "channels" / "demo" / "posted.json"
+    posted_log.parent.mkdir(parents=True)
+    posted_log.write_text("", encoding="utf-8")
+
+    monkeypatch.setattr(github_storage, "PROJECT_ROOT", tmp_path)
+
+    with pytest.raises(GitHubAPIError) as exc_info:
+        github_storage.validate_posted_log("demo")
+
+    assert "Restore it to a valid JSON array such as []" in str(exc_info.value)

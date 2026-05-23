@@ -45,16 +45,7 @@ def get_signed_download_url(repo: str, path: str, github_token: str) -> str:
 
 def append_to_posted_log(channel_id: str, entry: dict[str, Any]) -> None:
     posted_path = PROJECT_ROOT / "channels" / channel_id / "posted.json"
-    if not posted_path.exists():
-        raise GitHubAPIError(f"Missing posted log file: {posted_path}")
-
-    try:
-        data = json.loads(posted_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise GitHubAPIError(f"Invalid JSON in {posted_path}: {exc}") from exc
-
-    if not isinstance(data, list):
-        raise GitHubAPIError(f"Posted log must be a JSON array: {posted_path}")
+    data = _load_posted_log(posted_path)
 
     data.append(entry)
     temp_path = posted_path.with_suffix(".json.tmp")
@@ -63,6 +54,11 @@ def append_to_posted_log(channel_id: str, entry: dict[str, Any]) -> None:
         encoding="utf-8",
     )
     temp_path.replace(posted_path)
+
+
+def validate_posted_log(channel_id: str) -> None:
+    posted_path = PROJECT_ROOT / "channels" / channel_id / "posted.json"
+    _load_posted_log(posted_path)
 
 
 def git_move_and_commit(
@@ -147,3 +143,19 @@ def _parse_github_json(response: requests.Response) -> dict[str, Any]:
         raise GitHubAPIError(f"GitHub API returned unexpected payload: {payload!r}")
 
     return payload
+
+
+def _load_posted_log(posted_path: Path) -> list[dict[str, Any]]:
+    if not posted_path.exists():
+        raise GitHubAPIError(f"Missing posted log file: {posted_path}")
+
+    try:
+        data = json.loads(posted_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        hint = " Restore it to a valid JSON array such as []."
+        raise GitHubAPIError(f"Invalid JSON in {posted_path}: {exc}.{hint}") from exc
+
+    if not isinstance(data, list):
+        raise GitHubAPIError(f"Posted log must be a JSON array: {posted_path}")
+
+    return data

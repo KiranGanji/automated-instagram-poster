@@ -16,13 +16,23 @@ try:
     from .config import ConfigError, load_channel_config, load_secrets
     from .content import QueueItem, count_queue_items, pick_next_item, resolve_caption
     from .exceptions import ContentValidationError, GitHubAPIError, InstagramAPIError
-    from .github_storage import append_to_posted_log, get_signed_download_url, git_move_and_commit
+    from .github_storage import (
+        append_to_posted_log,
+        get_signed_download_url,
+        git_move_and_commit,
+        validate_posted_log,
+    )
     from .instagram import InstagramClient
 except ImportError:  # pragma: no cover - script execution fallback
     from config import ConfigError, load_channel_config, load_secrets
     from content import QueueItem, count_queue_items, pick_next_item, resolve_caption
     from exceptions import ContentValidationError, GitHubAPIError, InstagramAPIError
-    from github_storage import append_to_posted_log, get_signed_download_url, git_move_and_commit
+    from github_storage import (
+        append_to_posted_log,
+        get_signed_download_url,
+        git_move_and_commit,
+        validate_posted_log,
+    )
     from instagram import InstagramClient
 
 
@@ -85,6 +95,8 @@ def main() -> int:
             len(caption),
             caption_source,
         )
+
+        validate_posted_log(config.channel_id)
 
         if args.dry_run:
             logger.info(

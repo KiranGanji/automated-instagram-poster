@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src import post
 from src.content import QueueItem
+from src.exceptions import GitHubAPIError
 
 
 def test_main_image_flow_skips_polling(monkeypatch, tmp_path):
@@ -191,6 +192,36 @@ def test_main_carousel_flow_polls_parent_for_video_and_records_slide_count(
     assert events[-1] == ("git", "004", True, "carousel")
 
 
+def test_main_fails_before_publish_when_posted_log_is_invalid(monkeypatch, tmp_path):
+    events: list[tuple] = []
+    item = QueueItem(
+        identifier="001.png",
+        media_type="image",
+        paths=[tmp_path / "channels" / "drifted-lines" / "queue" / "001.png"],
+    )
+
+    class FakeClient:
+        def __init__(self, ig_user_id: str, access_token: str):
+            events.append(("init", ig_user_id, access_token))
+
+    _patch_main_dependencies(
+        monkeypatch,
+        tmp_path,
+        item,
+        events,
+        FakeClient,
+        queue_count=3,
+    )
+    monkeypatch.setattr(
+        post,
+        "validate_posted_log",
+        lambda channel_id: (_ for _ in ()).throw(GitHubAPIError("bad posted log")),
+    )
+
+    assert post.main() == 2
+    assert events == []
+
+
 def _patch_main_dependencies(
     monkeypatch,
     tmp_path: Path,
@@ -235,6 +266,7 @@ def _patch_main_dependencies(
     monkeypatch.setattr(post, "resolve_caption", lambda channel_id, filename, default_key: ("caption", "custom"))
     monkeypatch.setattr(post, "resolve_token", lambda: "token")
     monkeypatch.setattr(post, "require_env", lambda name: "repo/name")
+    monkeypatch.setattr(post, "validate_posted_log", lambda channel_id: None)
     monkeypatch.setattr(
         post,
         "get_signed_download_url",
