@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover - script execution fallback
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SUPPORTED_MEDIA_TYPES = {"image", "reel", "carousel"}
 
 
 @dataclass(frozen=True)
@@ -98,6 +99,15 @@ def load_channel_config(channel_id: str) -> ChannelConfig:
         raise ConfigError(
             f"Field 'content.media_types' must be a non-empty list of strings in {config_path}."
         )
+    normalized_media_types = [item.strip().lower() for item in media_types]
+    invalid_media_types = [
+        item for item in normalized_media_types if item not in SUPPORTED_MEDIA_TYPES
+    ]
+    if invalid_media_types:
+        joined = ", ".join(sorted(set(invalid_media_types)))
+        raise ConfigError(
+            f"Field 'content.media_types' contains unsupported values in {config_path}: {joined}."
+        )
 
     default_caption_key = _require_non_empty_string(
         content_data, "default_caption_key", config_path, parent="content"
@@ -118,7 +128,7 @@ def load_channel_config(channel_id: str) -> ChannelConfig:
         display_name=display_name,
         secret_prefix=secret_prefix,
         content=ContentConfig(
-            media_types=[item.strip() for item in media_types],
+            media_types=normalized_media_types,
             default_caption_key=default_caption_key,
         ),
         posting=PostingConfig(

@@ -6,6 +6,10 @@ class GitHubAPIError(Exception):
     """Raised when GitHub API calls or git operations fail."""
 
 
+class ContentValidationError(Exception):
+    """Raised when queued content does not meet publishing requirements."""
+
+
 class InstagramAPIError(Exception):
     """Raised when Instagram Graph API calls fail."""
 
@@ -20,3 +24,7 @@ class InstagramPermissionError(InstagramAPIError):
 
 class InstagramRateLimitError(InstagramAPIError):
     """Raised when the Instagram API rate-limits the request."""
+
+
+class InstagramTimeoutError(InstagramAPIError):
+    """Raised when Instagram media processing does not finish before timeout."""

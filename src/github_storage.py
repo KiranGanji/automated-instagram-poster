@@ -65,9 +65,15 @@ def append_to_posted_log(channel_id: str, entry: dict[str, Any]) -> None:
     temp_path.replace(posted_path)
 
 
-def git_move_and_commit(channel_id: str, filename: str, ig_media_id: str) -> None:
-    queue_path = Path("channels") / channel_id / "queue" / filename
-    posted_path = Path("channels") / channel_id / "posted" / filename
+def git_move_and_commit(
+    channel_id: str,
+    identifier: str,
+    is_directory: bool,
+    ig_media_id: str,
+    media_type: str,
+) -> None:
+    queue_path = Path("channels") / channel_id / "queue" / identifier
+    posted_path = Path("channels") / channel_id / "posted" / identifier
     posted_log_path = Path("channels") / channel_id / "posted.json"
 
     git_user_email = os.getenv(
@@ -76,15 +82,25 @@ def git_move_and_commit(channel_id: str, filename: str, ig_media_id: str) -> Non
     git_user_name = os.getenv("GIT_USER_NAME", "github-actions[bot]")
 
     try:
-        if not (PROJECT_ROOT / queue_path).exists():
-            raise GitHubAPIError(f"Queue file is missing and cannot be moved: {queue_path}")
+        source_path = PROJECT_ROOT / queue_path
+        if not source_path.exists():
+            raise GitHubAPIError(f"Queue entry is missing and cannot be moved: {queue_path}")
+        if is_directory and not source_path.is_dir():
+            raise GitHubAPIError(f"Expected a queue directory but found a file: {queue_path}")
+        if not is_directory and not source_path.is_file():
+            raise GitHubAPIError(f"Expected a queue file but found a directory: {queue_path}")
         (PROJECT_ROOT / posted_path.parent).mkdir(parents=True, exist_ok=True)
         _run_git_command(["git", "config", "user.email", git_user_email])
         _run_git_command(["git", "config", "user.name", git_user_name])
         _run_git_command(["git", "mv", str(queue_path), str(posted_path)])
         _run_git_command(["git", "add", str(posted_log_path)])
         _run_git_command(
-            ["git", "commit", "-m", f"post: {channel_id} {filename} -> {ig_media_id}"]
+            [
+                "git",
+                "commit",
+                "-m",
+                f"post: {channel_id} {media_type} {identifier} -> {ig_media_id}",
+            ]
         )
         _push_with_retry()
     except subprocess.CalledProcessError as exc:

@@ -49,6 +49,8 @@ automated-instagram-poster/
 4. Add the four GitHub Secrets matching the new `secret_prefix`.
 5. Copy `post-drifted-lines.yml` to `post-<new-channel-id>.yml` and update the channel name, secrets, and cron.
 
+See [new-channel-checklist.md](/Users/kiranganji/InstagramAutomation/automated-instagram-poster/new-channel-checklist.md:1) for the full onboarding checklist, including token refresh workflow updates and v2 media rules.
+
 ## Authorize a new Instagram account
 
 Create or reuse a Meta app, connect the Instagram professional account, complete the Instagram Login flow, exchange the short-lived token for a long-lived token, and store the resulting credentials in your per-channel secrets. The detailed Meta console walkthrough lives outside this repo; this project assumes those four values already exist.
@@ -62,6 +64,42 @@ python src/post.py --channel drifted-lines --dry-run
 ```
 
 Dry runs resolve config, queue state, captions, and secret loading without publishing to Instagram or pushing git changes.
+
+## Media types
+
+`queue/` now supports three post shapes:
+
+- Image: a single `.jpg`, `.jpeg`, or `.png` file such as `001.jpg`
+- Reel: a single `.mp4` or `.mov` file such as `002.mp4`
+- Carousel: a folder such as `003/` containing 2-10 image/video files like `01.jpg`, `02.jpg`, `03.mp4`
+
+Top-level queue entries are processed in alphabetical order. Carousel slides are posted in the folder's internal alphabetical order. Caption keys in `captions.json` still map to the queue identifier: filenames for images/reels, folder names for carousels.
+
+Channels can restrict what they publish with `content.media_types` in `channels/<id>/config.yml`. If a channel is configured for `[image]`, queued reels and carousel folders are skipped with a warning instead of being posted.
+
+## Constraints
+
+| Type | Rules |
+| --- | --- |
+| Image | `.jpg`, `.jpeg`, `.png` |
+| Reel | `.mp4` or `.mov`, 3-90 seconds, warn above 100 MB, reject above 500 MB |
+| Carousel | 2-10 items, mixed image/video allowed, carousel video items must be 60 seconds or less |
+
+Reels work best at 9:16. Carousel posts inherit Instagram cropping from the first slide. For video compatibility, encode with H.264 video and AAC audio.
+
+## ffprobe
+
+CI runners already include `ffprobe`, so no workflow changes are needed for video validation. For local validation, install `ffmpeg`, which includes `ffprobe`:
+
+```bash
+brew install ffmpeg
+```
+
+or:
+
+```bash
+sudo apt install ffmpeg
+```
 
 ## Troubleshooting
 

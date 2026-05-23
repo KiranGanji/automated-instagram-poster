@@ -3,7 +3,7 @@ display_name: "Drifted Lines"
 secret_prefix: DRIFTED_LINES
 
 content:
-  media_types: [image]
+  media_types: [image, reel, carousel]
   default_caption_key: default
 
 posting:

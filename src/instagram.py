@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -10,6 +11,7 @@ try:
         InstagramAPIError,
         InstagramPermissionError,
         InstagramRateLimitError,
+        InstagramTimeoutError,
         InstagramTokenError,
     )
 except ImportError:  # pragma: no cover - script execution fallback
@@ -17,11 +19,13 @@ except ImportError:  # pragma: no cover - script execution fallback
         InstagramAPIError,
         InstagramPermissionError,
         InstagramRateLimitError,
+        InstagramTimeoutError,
         InstagramTokenError,
     )
 
 
 GRAPH_BASE_URL = "https://graph.instagram.com"
+LOGGER = logging.getLogger(__name__)
 
 
 class InstagramClient:
@@ -31,20 +35,14 @@ class InstagramClient:
         self.api_version = api_version
 
     def create_image_container(self, image_url: str, caption: str) -> str:
-        try:
-            response = requests.post(
-                self._versioned_url(f"{self.ig_user_id}/media"),
-                data={
-                    "image_url": image_url,
-                    "caption": caption,
-                    "media_type": "IMAGE",
-                    "access_token": self.access_token,
-                },
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            raise InstagramAPIError(f"Instagram API request failed: {exc}") from exc
-        payload = _parse_json_response(response)
+        payload = self._post_media(
+            {
+                "image_url": image_url,
+                "caption": caption,
+                "media_type": "IMAGE",
+                "access_token": self.access_token,
+            }
+        )
         return _extract_id(payload, "container_id")
 
     def publish_container(self, container_id: str) -> str:
@@ -103,21 +101,46 @@ class InstagramClient:
         if cover_url:
             data["cover_url"] = cover_url
 
-        try:
-            response = requests.post(
-                self._versioned_url(f"{self.ig_user_id}/media"),
-                data=data,
-                timeout=30,
-            )
-        except requests.RequestException as exc:
-            raise InstagramAPIError(f"Instagram API request failed: {exc}") from exc
-        payload = _parse_json_response(response)
+        payload = self._post_media(data)
+        return _extract_id(payload, "container_id")
+
+    def create_carousel_child_container(
+        self,
+        media_url: str,
+        is_video: bool,
+    ) -> str:
+        data: dict[str, Any] = {
+            "is_carousel_item": "true",
+            "access_token": self.access_token,
+        }
+        if is_video:
+            data["media_type"] = "VIDEO"
+            data["video_url"] = media_url
+        else:
+            data["image_url"] = media_url
+
+        payload = self._post_media(data)
+        return _extract_id(payload, "container_id")
+
+    def create_carousel_parent_container(
+        self,
+        children: list[str],
+        caption: str,
+    ) -> str:
+        payload = self._post_media(
+            {
+                "media_type": "CAROUSEL",
+                "children": ",".join(children),
+                "caption": caption,
+                "access_token": self.access_token,
+            }
+        )
         return _extract_id(payload, "container_id")
 
     def poll_container_status(
         self,
         container_id: str,
-        max_wait_seconds: int = 300,
+        max_wait_seconds: int = 600,
         poll_interval: int = 5,
     ) -> str:
         deadline = time.monotonic() + max_wait_seconds
@@ -127,7 +150,7 @@ class InstagramClient:
                 response = requests.get(
                     self._versioned_url(container_id),
                     params={
-                        "fields": "status_code",
+                        "fields": "status_code,status",
                         "access_token": self.access_token,
                     },
                     timeout=30,
@@ -142,18 +165,39 @@ class InstagramClient:
                 )
             if status == "FINISHED":
                 return status
+            if status == "PUBLISHED":
+                LOGGER.info("Instagram container %s is already published.", container_id)
+                return status
             if status in {"ERROR", "EXPIRED"}:
+                detail = payload.get("status")
+                suffix = f" Detail: {detail}" if isinstance(detail, str) and detail.strip() else ""
                 raise InstagramAPIError(
-                    f"Instagram container {container_id} failed with status_code={status}."
+                    f"Instagram container {container_id} failed with status_code={status}.{suffix}"
                 )
+            LOGGER.info(
+                "Instagram container %s still processing (status_code=%s).",
+                container_id,
+                status,
+            )
             time.sleep(poll_interval)
 
-        raise InstagramAPIError(
+        raise InstagramTimeoutError(
             f"Timed out waiting for Instagram container {container_id} to finish processing."
         )
 
     def _versioned_url(self, path: str) -> str:
         return f"{GRAPH_BASE_URL}/{self.api_version}/{path}"
+
+    def _post_media(self, data: dict[str, Any]) -> dict[str, Any]:
+        try:
+            response = requests.post(
+                self._versioned_url(f"{self.ig_user_id}/media"),
+                data=data,
+                timeout=30,
+            )
+        except requests.RequestException as exc:
+            raise InstagramAPIError(f"Instagram API request failed: {exc}") from exc
+        return _parse_json_response(response)
 
 
 def refresh_access_token(access_token: str) -> dict[str, Any]:
