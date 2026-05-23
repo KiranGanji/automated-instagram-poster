@@ -198,20 +198,17 @@ def publish_queue_item(
         return client.publish_container(container_id)
 
     child_ids: list[str] = []
-    has_video = False
     for path in item.paths:
         media_url = _get_signed_url(root_dir, path, repo, github_token)
         is_video = _is_video_path(path)
-        has_video = has_video or is_video
         child_id = client.create_carousel_child_container(media_url=media_url, is_video=is_video)
         logger.info("Carousel child container created for %s: %s", path.name, child_id)
         child_ids.append(child_id)
 
     parent_id = client.create_carousel_parent_container(child_ids, caption)
     logger.info("Carousel parent container created: %s", parent_id)
-    if has_video:
-        client.poll_container_status(parent_id, max_wait_seconds=600, poll_interval=5)
-        logger.info("Carousel parent container finished processing: %s", parent_id)
+    client.poll_container_status(parent_id, max_wait_seconds=600, poll_interval=5)
+    logger.info("Carousel parent container finished processing: %s", parent_id)
     return client.publish_container(parent_id)
 
 

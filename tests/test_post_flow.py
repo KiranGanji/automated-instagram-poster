@@ -114,7 +114,7 @@ def test_main_reel_flow_polls_before_publish(monkeypatch, tmp_path):
     assert events[-1] == ("git", "003.mp4", False, "reel")
 
 
-def test_main_carousel_flow_polls_parent_for_video_and_records_slide_count(
+def test_main_carousel_flow_polls_parent_and_records_slide_count(
     monkeypatch,
     tmp_path,
 ):
@@ -124,7 +124,7 @@ def test_main_carousel_flow_polls_parent_for_video_and_records_slide_count(
         media_type="carousel",
         paths=[
             tmp_path / "channels" / "drifted-lines" / "queue" / "004" / "01.jpg",
-            tmp_path / "channels" / "drifted-lines" / "queue" / "004" / "02.mp4",
+            tmp_path / "channels" / "drifted-lines" / "queue" / "004" / "02.png",
             tmp_path / "channels" / "drifted-lines" / "queue" / "004" / "03.jpg",
         ],
     )
@@ -185,7 +185,7 @@ def test_main_carousel_flow_polls_parent_for_video_and_records_slide_count(
         "git",
     ]
     assert events[2][2] is False
-    assert events[4][2] is True
+    assert events[4][2] is False
     assert events[6][2] is False
     assert events[7] == ("parent", ["child-1", "child-2", "child-3"], "caption")
     assert events[-2] == ("log", "004", "carousel", 3)
