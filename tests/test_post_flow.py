@@ -7,7 +7,7 @@ from src.content import QueueItem
 from src.exceptions import GitHubAPIError
 
 
-def test_main_image_flow_skips_polling(monkeypatch, tmp_path):
+def test_main_image_flow_polls_before_publish(monkeypatch, tmp_path):
     events: list[tuple] = []
     item = QueueItem(
         identifier="001.png",
@@ -23,8 +23,14 @@ def test_main_image_flow_skips_polling(monkeypatch, tmp_path):
             events.append(("create_image", image_url, caption))
             return "container-1"
 
-        def poll_container_status(self, *args, **kwargs):
-            raise AssertionError("Image posts should not poll container status")
+        def poll_container_status(
+            self,
+            container_id: str,
+            max_wait_seconds: int = 600,
+            poll_interval: int = 5,
+        ) -> str:
+            events.append(("poll", container_id, max_wait_seconds, poll_interval))
+            return "FINISHED"
 
         def publish_container(self, container_id: str) -> str:
             events.append(("publish", container_id))
@@ -48,6 +54,7 @@ def test_main_image_flow_skips_polling(monkeypatch, tmp_path):
         "init",
         "signed_url",
         "create_image",
+        "poll",
         "publish",
         "permalink",
         "log",

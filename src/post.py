@@ -187,6 +187,8 @@ def publish_queue_item(
         image_url = _get_signed_url(root_dir, item.paths[0], repo, github_token)
         container_id = client.create_image_container(image_url=image_url, caption=caption)
         logger.info("Image container created: %s", container_id)
+        client.poll_container_status(container_id, max_wait_seconds=600, poll_interval=5)
+        logger.info("Image container finished processing: %s", container_id)
         return client.publish_container(container_id)
 
     if item.media_type == "reel":
